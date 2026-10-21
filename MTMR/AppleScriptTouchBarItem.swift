@@ -9,14 +9,11 @@ class AppleScriptTouchBarItem: CustomButtonTouchBarItem {
     init?(identifier: NSTouchBarItem.Identifier, source: SourceProtocol, interval: TimeInterval, alternativeImages: [String: SourceProtocol]) {
         self.interval = interval
         self.alternativeImages = alternativeImages
-        super.init(identifier: identifier, title: "⏳")
+        super.init(identifier: identifier, title: "")
         forceHideConstraint = view.widthAnchor.constraint(equalToConstant: 0)
-        title = "scheduled"
+        forceHideConstraint.isActive = true
         DispatchQueue.appleScriptQueue.async {
             guard let script = source.appleScript else {
-                DispatchQueue.main.async {
-                    self.title = "no script"
-                }
                 return
             }
             self.script = script
@@ -29,9 +26,6 @@ class AppleScriptTouchBarItem: CustomButtonTouchBarItem {
                 #if DEBUG
                     print(error?.description ?? "unknown error")
                 #endif
-                DispatchQueue.main.async {
-                    self.title = "error"
-                }
                 return
             }
             self.refreshAndSchedule()
@@ -48,6 +42,8 @@ class AppleScriptTouchBarItem: CustomButtonTouchBarItem {
         #endif
         let scriptResult = execute()
         DispatchQueue.main.async {
+            // 执行失败时保留上一次成功结果；首次失败则继续隐藏
+            guard scriptResult != "error" else { return }
             self.title = scriptResult
             self.forceHideConstraint.isActive = scriptResult == ""
             #if DEBUG
