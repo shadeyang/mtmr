@@ -55,12 +55,13 @@ jobs:
           BUILD=$(/usr/libexec/PlistBuddy -c "Print CFBundleVersion" Release/MTMR.app/Contents/Info.plist)
           echo "MTMR ${VERSION} (${BUILD})"
 
-      # 上游是 `create-dmg MTMR.app || true`，失败被静默吞掉，
-      # 后面去找 MTMR*.dmg 时才以「找不到文件」失败 —— 报的不是真正的原因
+      # --no-code-sign 必需：create-dmg 8.x 默认要给 DMG 本身签名（为 Sparkle 自动更新），
+      # 找不到签名身份时报 "No suitable code signing identity found" 并以退出码 2 结束。
+      # 此时 DMG 其实已经生成，但不跳过签名，这一步就判失败，后面上传与发布全被跳过。
       - name: Create DMG
         run: |
           cd Release
-          create-dmg MTMR.app
+          create-dmg --no-code-sign MTMR.app
           ls -lh MTMR*.dmg
 
       # 每次推送都留一份可下载产物；tag 推送额外发一个 Release
