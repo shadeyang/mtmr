@@ -4,19 +4,25 @@ on: [push, pull_request]
 
 jobs:
   test:
-    runs-on: macOS-latest
-
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v3
+
+      # 上游的这两个 job 都把 xcpretty 串在管道里，而 runner 上默认没有这个 gem ——
+      # 缺了它管道先失败，CI 会红在一个与代码无关的地方
+      - name: Install xcpretty
+        run: sudo gem install xcpretty
 
       - name: Run tests
         run: xcodebuild test -project MTMR.xcodeproj -scheme 'UnitTests' | xcpretty -c && exit ${PIPESTATUS[0]}
 
   build:
-    runs-on: macOS-latest
-
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v3
+
+      - name: Install xcpretty
+        run: sudo gem install xcpretty
 
       - name: Build (universal binary)
         run: xcodebuild archive -project "MTMR.xcodeproj" -scheme "MTMR" -archivePath Release/App.xcarchive DEVELOPMENT_TEAM="" CODE_SIGN_IDENTITY="" ARCHS="arm64 x86_64" | xcpretty -c && exit ${PIPESTATUS[0]}

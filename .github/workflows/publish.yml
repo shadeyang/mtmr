@@ -1,4 +1,4 @@
-name: Publish unsign version
+name: Publish unsigned build
 
 on:
   push:
@@ -6,10 +6,13 @@ on:
       - master
     tags:
       - "v*"
+  workflow_dispatch:
 
 jobs:
   Build-and-release:
-    runs-on: macOS-latest
+    runs-on: macos-latest
+    permissions:
+      contents: write   # 建 Release 需要；仓库默认是 read-only，不给这行必然 403
 
     steps:
       - uses: actions/checkout@v3
@@ -19,23 +22,64 @@ jobs:
         with:
           node-version: 18.x
 
+      # runner 上默认没有这个 gem，而 build-test.yml 把命令串在管道里
+      - name: Install xcpretty
+        run: sudo gem install xcpretty
+
       - name: Install create-dmg
         run: npm i -g create-dmg
 
-      - name: Build Archive (universal binary)
-        run: xcodebuild archive -project "MTMR.xcodeproj" -scheme "MTMR" -archivePath Release/App.xcarchive DEVELOPMENT_TEAM="" CODE_SIGN_IDENTITY="" ARCHS="arm64 x86_64" | xcpretty -c && exit ${PIPESTATUS[0]}
+      # 刻意不走 `archive` + `-exportArchive`：export-options.plist 里的 teamID 是上游作者的
+      # 证书团队，fork 上没有对应证书，导出会直接失败。改成 ad-hoc 签名的普通构建，
+      # 产物同样可用，还省掉整个 export 环节。
+      - name: Build (universal binary, ad-hoc signed)
+        run: >
+          xcodebuild build
+          -project MTMR.xcodeproj
+          -scheme MTMR
+          -configuration Release
+          -destination 'platform=macOS'
+          ARCHS="arm64 x86_64" ONLY_ACTIVE_ARCH=NO
+          CODE_SIGN_IDENTITY="-" CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM=""
+          ENABLE_HARDENED_RUNTIME=NO
+          -derivedDataPath Release/DD
+          | xcpretty -c
 
-      - name: Build App
-        run: xcodebuild -project "MTMR.xcodeproj" -exportArchive -archivePath Release/App.xcarchive -exportOptionsPlist export-options.plist -exportPath Release | xcpretty -c && exit ${PIPESTATUS[0]}
+      - name: Verify universal binary
+        run: lipo -info Release/DD/Build/Products/Release/MTMR.app/Contents/MacOS/MTMR
 
+      - name: Stage app
+        run: |
+          cp -R Release/DD/Build/Products/Release/MTMR.app Release/MTMR.app
+          VERSION=$(/usr/libexec/PlistBuddy -c "Print CFBundleShortVersionString" Release/MTMR.app/Contents/Info.plist)
+          BUILD=$(/usr/libexec/PlistBuddy -c "Print CFBundleVersion" Release/MTMR.app/Contents/Info.plist)
+          echo "MTMR ${VERSION} (${BUILD})"
+
+      # 上游是 `create-dmg MTMR.app || true`，失败被静默吞掉，
+      # 后面去找 MTMR*.dmg 时才以「找不到文件」失败 —— 报的不是真正的原因
       - name: Create DMG
         run: |
           cd Release
-          create-dmg MTMR.app || true
+          create-dmg MTMR.app
+          ls -lh MTMR*.dmg
 
-      - name: GitHub Release
-        uses: "marvinpinto/action-automatic-releases@latest"
+      # 每次推送都留一份可下载产物；tag 推送额外发一个 Release
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
         with:
-          repo_token: "${{ secrets.GITHUB_TOKEN }}"
-          prerelease: false
-          files: Release/MTMR*.dmg
+          name: MTMR-dmg
+          path: Release/MTMR*.dmg
+          if-no-files-found: error
+
+      # 用内置 gh CLI 发 Release，替代第三方 action：
+      # marvinpinto/action-automatic-releases 已不再维护，且分支推送时匹配不到 tag 会静默不发。
+      # 只在 tag 推送时建 Release —— 否则每次 push 都会多出一个无意义的 tag。
+      - name: Create GitHub Release (tag pushes only)
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "${GITHUB_REF_NAME}" \
+            --title "MTMR ${GITHUB_REF_NAME}" \
+            --notes "自动构建（未签名）。commit ${GITHUB_SHA}" \
+            Release/MTMR*.dmg
