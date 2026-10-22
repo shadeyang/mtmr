@@ -371,14 +371,47 @@ To close a group, use the button:
 
 > Three-section agent status view inside one rounded background, split by thin vertical dividers:
 > project name on the left, status in the middle, activity age on the right.
-> Values are pushed by the integration layer; an over-long project name scrolls instead of truncating.
+> The project name always shows from its first character; an over-long name is clipped at the right
+> edge rather than scrolled.
 > Set `"bordered": false` for a transparent background with only the dividers.
+>
+> The values come from a shell script polled every `refreshInterval` seconds. The script must print
+> **one line of JSON** on stdout:
+>
+> ```json
+> {"project": "my-app", "status": "working", "detail": "Read", "kind": "tool", "age": "3m"}
+> ```
+>
+> `project`, `status` and `age` must all be present; a missing one, a non-zero exit code, or output
+> that exceeds the interval is treated as a failed poll and the last successfully read values are
+> kept. `detail` and `kind` are optional — omit them and the middle segment falls back to the plain
+> status symbol.
+>
+> The item shows nothing until it has data: before the first successful poll, and whenever the
+> script reports an empty `project`, its width collapses to zero and it occupies no space on the
+> bar. Omitting `source` entirely therefore means the item never appears.
+>
+> `status` is passed as a token, not a symbol. The symbol and colour are chosen on the Swift side:
+> `idle` → `○` grey, `working` → `●` green, `waiting` → `◐` orange, `done` → `✓` blue,
+> `error` → `✗` red, missing or unknown → `●` white. `age` is formatted by the script
+> (`3m`, `12s`, `2h`); MTMR does no time arithmetic.
+>
+> A non-empty `detail` is appended after the status symbol whatever `status` is. Use it for a short
+> tool name (`Read`, `Grep`, `Shell`) or an agent type (`Explore`, `general`), and leave it empty when
+> nothing specific is running. `kind` then only chooses the glyph and colour: `tool` → `●` in green,
+> `agent` → `◆` in blue, absent or unknown → the plain status symbol in its own colour. Note that a
+> longer middle segment widens that segment and takes the space from the project name, which is
+> sized from what remains.
 
 ```js
 {
   "type": "agentStatus",
   "width": 226, // Optional. Total width. The status and age segments size to their own text; the project name absorbs the rest
   "bordered": false, // Optional. Default true
+  "refreshInterval": 5, // Optional. Seconds between polls. Default 5
+  "source": {
+    "inline": "./status.sh --slot 0"
+  },
 },
 ```
 

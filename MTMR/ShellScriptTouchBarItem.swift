@@ -91,6 +91,14 @@ class ShellScriptTouchBarItem: CustomButtonTouchBarItem {
     }
     
     func execute(_ command: String) -> (String, Bool) {
+        ShellScriptRunner.execute(command, timeout: interval)
+    }
+}
+
+/// shellScriptTitledButton 与 agentStatus 共用的脚本执行器
+enum ShellScriptRunner {
+    /// - Parameter timeout: 超过该时长仍未结束则强杀任务
+    static func execute(_ command: String, timeout: TimeInterval) -> (String, Bool) {
         let task = Process()
         if let shell = getenv("SHELL") {
             task.launchPath = String.init(cString: shell)
@@ -103,7 +111,7 @@ class ShellScriptTouchBarItem: CustomButtonTouchBarItem {
         task.standardOutput = pipe
 
         // 超过刷新间隔时终止任务；非零退出码视为失败
-        DispatchQueue.main.asyncAfter(deadline: .now() + interval) { [weak task] in
+        DispatchQueue.main.asyncAfter(deadline: .now() + timeout) { [weak task] in
             task?.terminate()
         }
 

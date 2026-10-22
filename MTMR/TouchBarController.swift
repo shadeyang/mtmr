@@ -386,8 +386,8 @@ class TouchBarController: NSObject, NSTouchBarDelegate {
             barItem = NetworkBarItem(identifier: identifier, flip: flip, units: units)
         case .darkMode:
             barItem = DarkModeBarItem(identifier: identifier)
-        case .agentStatus:
-            barItem = AgentStatusBarItem(identifier: identifier)
+        case let .agentStatus(source: source, refreshInterval: interval):
+            barItem = AgentStatusBarItem(identifier: identifier, source: source, interval: interval)
         case let .swipe(direction: direction, fingers: fingers, minOffset: minOffset, sourceApple: sourceApple, sourceBash: sourceBash):
             barItem = SwipeItem(identifier: identifier, direction: direction, fingers: fingers, minOffset: minOffset, sourceApple: sourceApple, sourceBash: sourceBash)
         case let .upnext(from: from, to: to, maxToShow: maxToShow, autoResize: autoResize):
@@ -412,8 +412,14 @@ class TouchBarController: NSObject, NSTouchBarDelegate {
         if case let .background(color)? = item.additionalParameters[.background], let item = barItem as? CustomButtonTouchBarItem {
             item.backgroundColor = color
         }
-        if case let .width(value)? = item.additionalParameters[.width], let widthBarItem = barItem as? CanSetWidth {
-            widthBarItem.setWidth(value: value)
+        if case let .width(value)? = item.additionalParameters[.width] {
+            // agentStatus 自持一条宽度约束（需在「无数据→0」与「有数据→width」间切换），
+            // 不能走 CanSetWidth —— 那条路径只会再叠加一条，两条同时激活必然冲突
+            if let agentStatusItem = barItem as? AgentStatusBarItem {
+                agentStatusItem.applyConfiguredWidth(value)
+            } else if let widthBarItem = barItem as? CanSetWidth {
+                widthBarItem.setWidth(value: value)
+            }
         }
         if case let .image(source)? = item.additionalParameters[.image], let item = barItem as? CustomButtonTouchBarItem {
             item.image = source.image

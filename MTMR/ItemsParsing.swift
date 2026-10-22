@@ -276,7 +276,7 @@ enum ItemType: Decodable {
     case pomodoro(workTime: Double, restTime: Double)
     case network(flip: Bool, units: String)
     case darkMode
-    case agentStatus
+    case agentStatus(source: SourceProtocol?, refreshInterval: Double)
     case swipe(direction: String, fingers: Int, minOffset: Float, sourceApple: SourceProtocol?, sourceBash: SourceProtocol?)
     case upnext(from: Double, to: Double, maxToShow: Int, autoResize: Bool)
 
@@ -433,7 +433,10 @@ enum ItemType: Decodable {
             self = .darkMode
             
         case .agentStatus:
-            self = .agentStatus
+            // source 可缺省：未配置的旧配置只显示占位值，不启动轮询
+            let source = try container.decodeIfPresent(Source.self, forKey: .source)
+            let interval = try container.decodeIfPresent(Double.self, forKey: .refreshInterval) ?? 5.0
+            self = .agentStatus(source: source, refreshInterval: interval)
             
         case .swipe:
             let sourceApple = try container.decodeIfPresent(Source.self, forKey: .sourceApple)
