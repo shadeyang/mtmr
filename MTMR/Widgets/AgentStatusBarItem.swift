@@ -62,6 +62,11 @@ class AgentStatusBarItem: NSCustomTouchBarItem, Widget {
     private let interval: TimeInterval
     private var lastPayload: Payload?
 
+    /// 容器驱动模式：子项从不轮询，`lastPayload` 恒为 nil，不能拿它判断有无数据。
+    /// 容器拿到一条有效会话后显式置位 —— 否则 applyVisibility() 会把宽度压成 0，
+    /// 与子项内部的内容最小宽度约束冲突，Auto Layout 只能任意断一条。
+    private var hasContainerData = false
+
     /// 自有宽度约束。刻意不走 CanSetWidth —— 那条路径是「新增」一条约束而非覆盖，
     /// 与隐藏用的 width=0 会同时激活而冲突（见 mtmr-custombutton-width-conflict.md）。
     /// 单一约束按状态改常量/是否激活，因此永不冲突。
@@ -78,15 +83,29 @@ class AgentStatusBarItem: NSCustomTouchBarItem, Widget {
         let age: String
     }
 
+    /// 容器驱动模式：由 AgentStatusListBarItem 直接推送数据，不自行轮询。
+    /// 与下面的 source 驱动 init 并存，单项用法完全不受影响。
+    override init(identifier: NSTouchBarItem.Identifier) {
+        // 容器驱动模式没有脚本也没有轮询间隔，必须先赋初值才能过 super.init
+        self.scriptSource = nil
+        self.interval = 0
+        super.init(identifier: identifier)
+        setUpView()
+    }
+
     init(identifier: NSTouchBarItem.Identifier, source: SourceProtocol?, interval: TimeInterval) {
         self.scriptSource = source?.string
         self.interval = interval
         super.init(identifier: identifier)
+        setUpView()
+        startPolling()
+    }
+
+    /// 起始即无数据 → 宽度 0，不占位
+    private func setUpView() {
         view = makeView()
-        // 起始即无数据 → 宽度 0，不占位
         widthConstraint = view.widthAnchor.constraint(equalToConstant: 0)
         widthConstraint.isActive = true
-        startPolling()
     }
 
     /// 由 TouchBarController 优先于 CanSetWidth 调用，避免叠加第二条宽度约束。
@@ -106,9 +125,25 @@ class AgentStatusBarItem: NSCustomTouchBarItem, Widget {
         fillClipWidthConstraint?.isActive = fills
     }
 
+    /// 容器拿到一条有效会话后调用。必须显式声明：本组件在容器模式下从不轮询，
+    /// `lastPayload` 永远是 nil，靠它判断会把宽度压成 0 而与内容最小宽度冲突。
+    func provideContainerData() {
+        hasContainerData = true
+        applyVisibility()
+    }
+
     /// 无数据时宽度归零：有数据且配了 width 用之，配了用自然尺寸，未读到数据一律不显示
     private func applyVisibility() {
-        guard let payload = lastPayload, !payload.project.isEmpty else {
+        let hasData: Bool
+        if hasContainerData {
+            hasData = true
+        } else if let payload = lastPayload {
+            hasData = !payload.project.isEmpty
+        } else {
+            hasData = false
+        }
+
+        guard hasData else {
             widthConstraint.constant = 0
             widthConstraint.isActive = true
             return
@@ -144,7 +179,7 @@ class AgentStatusBarItem: NSCustomTouchBarItem, Widget {
             DispatchQueue.main.async { [weak self] in
                 guard let self = self, self.lastPayload != payload else { return }
                 self.lastPayload = payload
-                let display = AgentStatusBarItem.presentation(for: payload)
+                let display = AgentStatusBarItem.presentation(status: payload.status, detail: payload.detail, kind: payload.kind)
                 self.update(project: payload.project, status: display.text, age: payload.age, statusColor: display.color)
             }
         }
@@ -162,21 +197,22 @@ class AgentStatusBarItem: NSCustomTouchBarItem, Widget {
     /// 中段显示什么：状态符号 + （有则追加）运行项名称。
     /// detail 有内容就追加在符号之后，不要求 kind 存在 —— 否则 kind 缺失时
     /// detail 会被整个丢掉。kind 只用于区分 tool / agent 的图标与颜色。
-    private static func presentation(for payload: Payload) -> (text: String, color: NSColor) {
-        let detail = payload.detail ?? ""
-        guard !detail.isEmpty else { return style(for: payload.status) }
+    /// 容器（agentStatusList）复用同一份映射，避免两条路径的规则漂移。
+    static func presentation(status: String, detail: String?, kind: String?) -> (text: String, color: NSColor) {
+        let name = detail ?? ""
+        guard !name.isEmpty else { return style(for: status) }
 
-        switch payload.kind {
-        case "tool": return ("● " + detail, .systemGreen)
-        case "agent": return ("◆ " + detail, .systemBlue)
+        switch kind {
+        case "tool": return ("● " + name, .systemGreen)
+        case "agent": return ("◆ " + name, .systemBlue)
         default:
-            let (symbol, color) = style(for: payload.status)
-            return ("\(symbol) \(detail)", color)
+            let (symbol, color) = style(for: status)
+            return ("\(symbol) \(name)", color)
         }
     }
 
     /// status token → 符号与颜色。脚本只报告事实，显示规则都在本侧。
-    private static func style(for status: String) -> (text: String, color: NSColor) {
+    static func style(for status: String) -> (text: String, color: NSColor) {
         switch status {
         case "idle": return ("○", .systemGray)
         case "working": return ("●", .systemGreen)

@@ -61,6 +61,8 @@ extension ItemType {
             return DarkModeBarItem.identifier
         case .agentStatus:
             return AgentStatusBarItem.identifier
+        case .agentStatusList:
+            return AgentStatusListBarItem.identifier
         case .swipe(direction: _, fingers: _, minOffset: _, sourceApple: _, sourceBash: _):
             return "com.toxblh.mtmr.swipe."
         case .upnext(from: _, to: _, maxToShow: _, autoResize: _):
@@ -388,6 +390,8 @@ class TouchBarController: NSObject, NSTouchBarDelegate {
             barItem = DarkModeBarItem(identifier: identifier)
         case let .agentStatus(source: source, refreshInterval: interval):
             barItem = AgentStatusBarItem(identifier: identifier, source: source, interval: interval)
+        case let .agentStatusList(source: source, refreshInterval: interval, compactCount: compactCount):
+            barItem = AgentStatusListBarItem(identifier: identifier, source: source, interval: interval, compactCount: compactCount)
         case let .swipe(direction: direction, fingers: fingers, minOffset: minOffset, sourceApple: sourceApple, sourceBash: sourceBash):
             barItem = SwipeItem(identifier: identifier, direction: direction, fingers: fingers, minOffset: minOffset, sourceApple: sourceApple, sourceBash: sourceBash)
         case let .upnext(from: from, to: to, maxToShow: maxToShow, autoResize: autoResize):
@@ -413,13 +417,20 @@ class TouchBarController: NSObject, NSTouchBarDelegate {
             item.backgroundColor = color
         }
         if case let .width(value)? = item.additionalParameters[.width] {
-            // agentStatus 自持一条宽度约束（需在「无数据→0」与「有数据→width」间切换），
-            // 不能走 CanSetWidth —— 那条路径只会再叠加一条，两条同时激活必然冲突
-            if let agentStatusItem = barItem as? AgentStatusBarItem {
+            // agentStatus 与 agentStatusList 各自持有一条宽度约束（需在「无数据→0」与
+            // 「有数据→width」间切换），不能走 CanSetWidth —— 那条路径只会再叠加一条，
+            // 两条同时激活必然冲突
+            if let listItem = barItem as? AgentStatusListBarItem {
+                listItem.applyConfiguredWidth(value)
+            } else if let agentStatusItem = barItem as? AgentStatusBarItem {
                 agentStatusItem.applyConfiguredWidth(value)
             } else if let widthBarItem = barItem as? CanSetWidth {
                 widthBarItem.setWidth(value: value)
             }
+        }
+        if case let .itemWidth(value)? = item.additionalParameters[.itemWidth], let listItem = barItem as? AgentStatusListBarItem {
+            // 只有容器认这个键：width 管容器总宽上限，itemWidth 管每个子组件的固定宽度
+            listItem.applyItemWidth(value)
         }
         if case let .image(source)? = item.additionalParameters[.image], let item = barItem as? CustomButtonTouchBarItem {
             item.image = source.image

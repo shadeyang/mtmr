@@ -415,6 +415,52 @@ To close a group, use the button:
 },
 ```
 
+#### `agentStatusList`
+
+> Container that groups N [`agentStatus`](#agentstatus) entries into one item, in session start order,
+> with no upper limit. Collapsed it shows the first `compactCount` items plus a `+N` badge counting the
+> rest. Tapping it expands the TouchBar to list every one of them, with horizontal dragging when they
+> do not fit and a back button on the left. Sessions are matched by id, not by position, so entries do
+> not shuffle when a session ends while another starts.
+>
+> The container polls the script **once** per interval and distributes the result — each child never
+> runs the script on its own. The item shows nothing until at least one session exists.
+>
+> Collapsed it always shows the first `compactCount` sessions — it never shows fewer because of
+> width — and is only as wide as the children it actually shows, so with a single session it is
+> exactly that one child's width. `itemWidth` additionally gives every child the same **fixed**
+> width; leave it out and each child sizes to its own content instead.
+>
+> `width` applies to the **expanded** view only, as an upper bound: the list must not take over the
+> whole TouchBar and squeeze the items next to it. Sessions beyond that width are reached by dragging
+> the list sideways.
+>
+> The script must print **one JSON array** on stdout, one object per session, in start order. Every
+> object needs an `id`; without it the entries cannot be matched and will jump around. `project`,
+> `status` and `age` are required, `detail` and `kind` optional — see [`agentStatus`](#agentstatus) for
+> what `status`, `detail` and `kind` mean.
+
+```js
+{
+  "type": "agentStatusList",
+  "itemWidth": 220, // Optional. Fixed width of every child. Omit to let each child size to its own content
+  "width": 480, // Optional. Upper bound for the expanded view, so the list does not squeeze its neighbours
+  "refreshInterval": 5, // Optional. Seconds between polls. Default 5
+  "compactCount": 2, // Optional. How many to show before collapsing behind the +N badge. Default 2
+  "bordered": true, // Optional. Default true
+  "source": {
+    "inline": "./sessions.sh --json-all"
+  },
+},
+```
+
+```json
+[
+  {"id":"51fe958f944e","project":"my-app","status":"working","detail":"Read","kind":"tool","age":"3m"},
+  {"id":"7a2c9d04be1f","project":"other","status":"idle","detail":"","kind":"","age":"12s"}
+]
+```
+
 #### `upnext`
 
 > Calendar next event plugin

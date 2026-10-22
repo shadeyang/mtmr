@@ -33,7 +33,7 @@
 | 文件 | 风险 |
 |---|---|
 | `~/Library/Application Support/MTMR/items.json` | 唯一运行时配置，改错只能靠备份还原 |
-| `~/.qwen-touchbar-monitor/bin/touchbar_status.py` | 唯一数据源脚本，改错会静默导致所有 agentStatus 无数据 |
+| `~/bin/touchbar_status.py` | 唯一数据源脚本，改错会静默导致所有 agentStatus 无数据 |
 
 本次已完成的基线备份：
 
@@ -50,8 +50,8 @@
 ```bash
 BK=/tmp/mtmr-agentstatuslist-backup-20261022-172903/files
 cp "$BK/items.json" "$HOME/Library/Application Support/MTMR/items.json"
-cp "$BK/touchbar_status.py" "$HOME/.qwen-touchbar-monitor/bin/touchbar_status.py"
-chmod +x "$HOME/.qwen-touchbar-monitor/bin/touchbar_status.py"
+cp "$BK/touchbar_status.py" "$HOME/bin/touchbar_status.py"
+chmod +x "$HOME/bin/touchbar_status.py"
 ```
 
 > 备份在 `/tmp`，重启会丢。若本次改动跨越较长时间，应把 `files/` 一并拷到长期位置。
@@ -160,7 +160,7 @@ private var order: [String] = []                            // 启动顺序的 i
 
 ## 5. 逐文件改动清单
 
-### ① `~/.qwen-touchbar-monitor/bin/touchbar_status.py`（仓库外）
+### ① `~/bin/touchbar_status.py`（仓库外）
 
 把现有 `render_json` 拆出可复用的字典构造，只多带 `id`：
 
@@ -335,9 +335,9 @@ if let listItem = barItem as? AgentStatusListBarItem {
 
 ```bash
 # 数据源
-python3 ~/.qwen-touchbar-monitor/bin/touchbar_status.py --json-all | python3 -m json.tool | head -20
-python3 ~/.qwen-touchbar-monitor/bin/touchbar_status.py --slot 0 --json          # 回归
-python3 ~/.qwen-touchbar-monitor/bin/touchbar_status.py --slot 0 | cat -v        # ANSI 回归
+python3 ~/bin/touchbar_status.py --json-all | python3 -m json.tool | head -20
+python3 ~/bin/touchbar_status.py --slot 0 --json          # 回归
+python3 ~/bin/touchbar_status.py --slot 0 | cat -v        # ANSI 回归
 
 # 构建与测试
 xcodebuild -project MTMR.xcodeproj -scheme MTMR -configuration Debug \
@@ -371,8 +371,12 @@ xcodebuild test -project MTMR.xcodeproj -scheme 'UnitTests'
 1. **展开态是「只有列表 + 退回按钮」还是「保留原有亮度/音量等条目」？**
    当前按需求原文「全 TouchBar 展开、罗列所有 agentStatus」理解为**完全替换**。
 
-2. **折叠态宽度怎么定？**
-   2 个自适应 agentStatus + 徽标 → 宽度不可预测。建议 items.json 给容器显式 `width`，或给每个子项固定宽度。
+2. **折叠态宽度怎么定？** —— **已定（2026-10-22）：子项定宽 + 容器总宽按子项求和。**
+   2 个自适应 agentStatus + 徽标 → 宽度不可预测，故新增 `itemWidth` 键定**每个子组件的固定宽度**；
+   容器总宽 = 可见子项宽度求和（含徽标），**只剩一个会话时容器宽度就等于那一个子组件的宽度**。
+   原 `width` 键**降级为容器总宽上限**：放不下时从尾部少显示几个子项并计入 `+N` 徽标，
+   **不压缩已显示的子项** —— 子项宽度是 required 约束，压缩会直接撞上宽度约束冲突。
+   不写 `itemWidth` 时完整保留旧行为（子项内容自适应，`width` 作容器总宽）。
 
 3. **`+N` 徽标是否可点，还是只有容器主体可点？**
    当前按「点击该组件」实现为容器整体可点，徽标属于容器一部分。

@@ -71,6 +71,7 @@
 		B0F3112520C9E35F0076BB88 /* SupportNSTouchBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0F3112420C9E35F0076BB88 /* SupportNSTouchBar.swift */; };
 		B0F54A7A2295AC7D00B4C509 /* DarkModeBarItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0F54A792295AC7D00B4C509 /* DarkModeBarItem.swift */; };
 		A1B2C3011A1B000100C0FFEE /* AgentStatusBarItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3001A1B000100C0FFEE /* AgentStatusBarItem.swift */; };
+				A1B2C4011A1B000100C0FFEE /* AgentStatusListBarItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C4001A1B000100C0FFEE /* AgentStatusListBarItem.swift */; };
 		B0F8771A207AC1EA00D6E430 /* TouchBarSupport.m in Sources */ = {isa = PBXBuildFile; fileRef = B0F87719207AC1EA00D6E430 /* TouchBarSupport.m */; };
 		BAF5AB5724317B4300B04904 /* BasicView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAF5AB5624317B4300B04904 /* BasicView.swift */; };
 		BAF5AB5924317CAF00B04904 /* SwipeItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAF5AB5824317CAF00B04904 /* SwipeItem.swift */; };
@@ -166,6 +167,7 @@
 		B0F3112420C9E35F0076BB88 /* SupportNSTouchBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupportNSTouchBar.swift; sourceTree = "<group>"; };
 		B0F54A792295AC7D00B4C509 /* DarkModeBarItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DarkModeBarItem.swift; sourceTree = "<group>"; };
 		A1B2C3001A1B000100C0FFEE /* AgentStatusBarItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentStatusBarItem.swift; sourceTree = "<group>"; };
+				A1B2C4001A1B000100C0FFEE /* AgentStatusListBarItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentStatusListBarItem.swift; sourceTree = "<group>"; };
 		B0F87719207AC1EA00D6E430 /* TouchBarSupport.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TouchBarSupport.m; sourceTree = "<group>"; };
 		B0F8771B207AC92700D6E430 /* TouchBarSupport.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TouchBarSupport.h; sourceTree = "<group>"; };
 		BAF5AB5624317B4300B04904 /* BasicView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BasicView.swift; sourceTree = "<group>"; };
@@ -333,6 +335,7 @@
 				B08126F0217BE19000A98970 /* WidgetProtocol.swift */,
 				B0F54A792295AC7D00B4C509 /* DarkModeBarItem.swift */,
 				A1B2C3001A1B000100C0FFEE /* AgentStatusBarItem.swift */,
+				A1B2C4001A1B000100C0FFEE /* AgentStatusListBarItem.swift */,
 				F29F6A2424BC7148004FF8E4 /* UpNextScrubberTouchBarItem.swift */,
 			);
 			path = Widgets;
@@ -494,6 +497,7 @@
 				B082B253205C7D8000BC04DC /* AppDelegate.swift in Sources */,
 				B0F54A7A2295AC7D00B4C509 /* DarkModeBarItem.swift in Sources */,
 				A1B2C3011A1B000100C0FFEE /* AgentStatusBarItem.swift in Sources */,
+				A1B2C4011A1B000100C0FFEE /* AgentStatusListBarItem.swift in Sources */,
 				B08126EF217BD0B900A98970 /* PomodoroBarItem.swift in Sources */,
 				4CF222ED26CC43D50025BDA7 /* CPU.swift in Sources */,
 				B081732C213739FE005D4908 /* DnDBarItem.swift in Sources */,

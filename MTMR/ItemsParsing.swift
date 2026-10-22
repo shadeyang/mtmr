@@ -277,6 +277,7 @@ enum ItemType: Decodable {
     case network(flip: Bool, units: String)
     case darkMode
     case agentStatus(source: SourceProtocol?, refreshInterval: Double)
+    case agentStatusList(source: SourceProtocol?, refreshInterval: Double, compactCount: Int)
     case swipe(direction: String, fingers: Int, minOffset: Float, sourceApple: SourceProtocol?, sourceBash: SourceProtocol?)
     case upnext(from: Double, to: Double, maxToShow: Int, autoResize: Bool)
 
@@ -311,6 +312,7 @@ enum ItemType: Decodable {
         case fingers
         case minOffset
         case maxToShow
+        case compactCount
     }
 
     enum ItemTypeRaw: String, Decodable {
@@ -335,6 +337,7 @@ enum ItemType: Decodable {
         case network
         case darkMode
         case agentStatus
+        case agentStatusList
         case swipe
         case upnext
     }
@@ -437,6 +440,14 @@ enum ItemType: Decodable {
             let source = try container.decodeIfPresent(Source.self, forKey: .source)
             let interval = try container.decodeIfPresent(Double.self, forKey: .refreshInterval) ?? 5.0
             self = .agentStatus(source: source, refreshInterval: interval)
+
+        case .agentStatusList:
+            // source 同样可缺省：barItemDefinitions() 用的是 try!，必填会让
+            // 只写了 { "type": "agentStatusList" } 的配置解码抛错直接崩溃
+            let source = try container.decodeIfPresent(Source.self, forKey: .source)
+            let interval = try container.decodeIfPresent(Double.self, forKey: .refreshInterval) ?? 5.0
+            let compact = try container.decodeIfPresent(Int.self, forKey: .compactCount) ?? 2
+            self = .agentStatusList(source: source, refreshInterval: interval, compactCount: compact)
             
         case .swipe:
             let sourceApple = try container.decodeIfPresent(Source.self, forKey: .sourceApple)
@@ -662,6 +673,8 @@ enum LegacyLongActionType: Decodable {
 
 enum GeneralParameter {
     case width(_: CGFloat)
+    /// agentStatusList 专用：每个子组件的固定宽度。语义与 `width` 无关，不要混用
+    case itemWidth(_: CGFloat)
     case image(source: SourceProtocol)
     case align(_: Align)
     case bordered(_: Bool)
@@ -675,6 +688,7 @@ struct GeneralParameters: Decodable {
 
     enum CodingKeys: String, CodingKey {
         case width
+        case itemWidth
         case image
         case align
         case bordered
@@ -689,6 +703,10 @@ struct GeneralParameters: Decodable {
 
         if let value = try container.decodeIfPresent(CGFloat.self, forKey: .width) {
             result[.width] = .width(value)
+        }
+
+        if let value = try container.decodeIfPresent(CGFloat.self, forKey: .itemWidth) {
+            result[.itemWidth] = .itemWidth(value)
         }
 
         if let imageSource = try container.decodeIfPresent(Source.self, forKey: .image) {
