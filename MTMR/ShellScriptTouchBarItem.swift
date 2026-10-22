@@ -20,9 +20,10 @@ class ShellScriptTouchBarItem: CustomButtonTouchBarItem {
     init?(identifier: NSTouchBarItem.Identifier, source: SourceProtocol, interval: TimeInterval) {
         self.interval = interval
         self.source = source.string ?? "echo No \"source\""
-        super.init(identifier: identifier, title: "⏳")
+        super.init(identifier: identifier, title: "")
         
         forceHideConstraint = view.widthAnchor.constraint(equalToConstant: 0)
+        forceHideConstraint.isActive = true
         
         DispatchQueue.shellScriptQueue.async {
             self.refreshAndSchedule()
@@ -35,7 +36,7 @@ class ShellScriptTouchBarItem: CustomButtonTouchBarItem {
     
     func refreshAndSchedule() {
         // Execute script and get result
-        let scriptResult = execute(source)
+        let (scriptResult, succeeded) = execute(source)
         var rawTitle: String, image: NSImage?
         var json: Bool
 
@@ -60,6 +61,9 @@ class ShellScriptTouchBarItem: CustomButtonTouchBarItem {
         
         // Update UI
         DispatchQueue.main.async { [weak self, newBackgoundColor] in
+            // 失败时不更新 UI，保留上一次成功结果；首次失败继续隐藏
+            guard succeeded else { return }
+
             if (newBackgoundColor != self?.backgroundColor) { // performance optimization because of reinstallButton
                 self?.backgroundColor = newBackgoundColor
             }
@@ -67,7 +71,7 @@ class ShellScriptTouchBarItem: CustomButtonTouchBarItem {
             if json {
                 self?.image = image
             }
-            self?.forceHideConstraint.isActive = scriptResult == ""
+            self?.forceHideConstraint.isActive = rawTitle.isEmpty && image == nil
         }
         
         // Schedule next update
@@ -76,7 +80,7 @@ class ShellScriptTouchBarItem: CustomButtonTouchBarItem {
         }
     }
     
-    func execute(_ command: String) -> String {
+    func execute(_ command: String) -> (String, Bool) {
         let task = Process()
         if let shell = getenv("SHELL") {
             task.launchPath = String.init(cString: shell)
@@ -84,27 +88,36 @@ class ShellScriptTouchBarItem: CustomButtonTouchBarItem {
             task.launchPath = "/bin/bash"
         }
         task.arguments = ["-c", command]
-        
+
         let pipe = Pipe()
         task.standardOutput = pipe
-        
-        // kill process if it is over update interval
+
+        // 超过刷新间隔时终止任务；非零退出码视为失败
         DispatchQueue.main.asyncAfter(deadline: .now() + interval) { [weak task] in
             task?.terminate()
         }
-        
+
         task.launch()
-        
+
         let data = pipe.fileHandleForReading.readDataToEndOfFile()
-        var output: String = NSString(data: data, encoding: String.Encoding.utf8.rawValue) as String? ?? ""
-        
-        //always wait until task end or you can catch "task still running" error while accessing task.terminationStatus variable
+        let output = NSString(
+            data: data,
+            encoding: String.Encoding.utf8.rawValue
+        ) as String? ?? ""
+
         task.waitUntilExit()
-        if (output == "" && task.terminationStatus != 0) {
-            output = "error"
+
+        let result = output.replacingOccurrences(
+            of: "\\n+$",
+            with: "",
+            options: .regularExpression
+        )
+
+        if task.terminationStatus != 0 || result == "error" {
+            return ("", false)
         }
-        
-        return output.replacingOccurrences(of: "\\n+$", with: "", options: .regularExpression)
+
+        return (result, true)
     }
 }
 

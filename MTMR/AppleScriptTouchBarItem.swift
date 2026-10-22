@@ -40,10 +40,10 @@ class AppleScriptTouchBarItem: CustomButtonTouchBarItem {
         #if DEBUG
             print("refresh happened (interval \(interval)), self \(identifier.rawValue))")
         #endif
-        let scriptResult = execute()
+        let (scriptResult, succeeded) = execute()
         DispatchQueue.main.async {
             // 执行失败时保留上一次成功结果；首次失败则继续隐藏
-            guard scriptResult != "error" else { return }
+            guard succeeded else { return }
             self.title = scriptResult
             self.forceHideConstraint.isActive = scriptResult == ""
             #if DEBUG
@@ -65,26 +65,35 @@ class AppleScriptTouchBarItem: CustomButtonTouchBarItem {
         }
     }
 
-    func execute() -> String {
+    func execute() -> (String, Bool) {
         var error: NSDictionary?
         let output = script.executeAndReturnError(&error)
+
         if let error = error {
             print(error)
-            return "error"
+            return ("", false)
         }
-        if output.descriptorType == typeAEList {
-            let arr = Array(1...output.numberOfItems).compactMap({ output.atIndex($0)!.stringValue ?? "" })
 
-            if arr.count <= 0 {
-                return ""
+        if output.descriptorType == typeAEList {
+            guard output.numberOfItems > 0 else {
+                return ("", true)
+            }
+
+            let arr = (1...output.numberOfItems).compactMap {
+                output.atIndex($0)?.stringValue ?? ""
+            }
+
+            if arr.isEmpty {
+                return ("", true)
             } else if arr.count == 1 {
-                return arr[0]
+                return (arr[0], true)
             } else {
                 updateIcon(iconLabel: arr[1])
-                return arr[0]
+                return (arr[0], true)
             }
         }
-        return output.stringValue ?? ""
+
+        return (output.stringValue ?? "", true)
     }
 }
 
