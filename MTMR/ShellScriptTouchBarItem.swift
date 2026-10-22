@@ -64,14 +64,24 @@ class ShellScriptTouchBarItem: CustomButtonTouchBarItem {
             // 失败时不更新 UI，保留上一次成功结果；首次失败继续隐藏
             guard succeeded else { return }
 
-            if (newBackgoundColor != self?.backgroundColor) { // performance optimization because of reinstallButton
-                self?.backgroundColor = newBackgoundColor
+            guard let self = self else { return }
+
+            if newBackgoundColor != self.backgroundColor {
+                self.backgroundColor = newBackgoundColor
             }
-            self?.attributedTitle = title
-            if json {
-                self?.image = image
+
+            if !self.attributedTitle.isEqual(to: title) {
+                self.attributedTitle = title
             }
-            self?.forceHideConstraint.isActive = rawTitle.isEmpty && image == nil
+
+            if json && self.image != image {
+                self.image = image
+            }
+
+            let shouldHide = rawTitle.isEmpty && image == nil
+            if self.forceHideConstraint.isActive != shouldHide {
+                self.forceHideConstraint.isActive = shouldHide
+            }
         }
         
         // Schedule next update

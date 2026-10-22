@@ -144,12 +144,7 @@ class TouchBarController: NSObject, NSTouchBarDelegate {
         var changed = items.count != prevItems.count || swipeItems.count != prevSwipeItems.count
         
         if !changed {
-            for (item, prevItem) in zip(items, prevItems) {
-                if item.key != prevItem.key {
-                    changed = true
-                    break
-                }
-            }
+            changed = Set(items.keys) != Set(prevItems.keys)
         }
 
         if !changed {
@@ -173,6 +168,9 @@ class TouchBarController: NSObject, NSTouchBarDelegate {
         let changed = didItemsChange(prevItems: prevItems, prevSwipeItems: prevSwipeItems)
 
         if !changed {
+            // 配置未变化时保留原有实例，避免动态按钮重复初始化
+            items = prevItems
+            swipeItems = prevSwipeItems
             return
         }
         
