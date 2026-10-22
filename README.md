@@ -1,5 +1,7 @@
 # My touchbar. My rules. [![GitHub release](https://img.shields.io/github/release/toxblh/MTMR.svg)](https://github.com/Toxblh/MTMR/releases) [![license](https://img.shields.io/github/license/Toxblh/MTMR.svg)](https://github.com/Toxblh/MTMR/blob/master/LICENSE) ![minimal system requirements](https://img.shields.io/badge/required-macOS%2010.12.2-blue.svg) ![travis](https://travis-ci.org/Toxblh/MTMR.svg?branch=master)
 
+**[English](README.md) | [简体中文](README.zh-CN.md)**
+
 <img src="Resources/logo.png" align="right"
      title="MTMR by Toxblh" width="110" height="110">
 
@@ -27,6 +29,41 @@ All thanks to [@josetwentyfour](https://github.com/josmanvis)
 <a href="https://www.producthunt.com/posts/my-touchbar-my-rules-mtmr">
     <img src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=my-touchbar-my-rules-mtmr&theme=light" alt="My TouchBar My Rules (MTMR)" height="36px" style="max-width:100%">
 </a></p>
+
+## What's new in this fork
+
+This repository is a fork of [Toxblh/MTMR](https://github.com/Toxblh/MTMR) with two widgets added
+for people who keep several AI coding sessions running at once:
+
+| Widget | What it does |
+|---|---|
+| [`agentStatus`](#agentstatus) | A three-section status bar — project name, what it is doing right now, how long it has been running — fed by any shell script you write. |
+| [`agentStatusList`](#agentstatuslist) | A container that folds **every** live session into one item: two at a time with a `+N` badge, tapping it expands the TouchBar to the full list. |
+
+The upstream MTMR has no equivalent. There you would write one `agentStatus` entry per session by
+hand and re-edit `items.json` every time a session starts or ends. `agentStatusList` polls the script
+**once**, matches sessions by id so entries never shuffle, and collapses on its own.
+
+### Try it
+
+Add a single entry to `~/Library/Application Support/MTMR/items.json`:
+
+```json
+{
+  "type": "agentStatusList",
+  "itemWidth": 220,
+  "width": 480,
+  "refreshInterval": 3,
+  "compactCount": 2,
+  "source": { "inline": "python3 ~/bin/touchbar_status.py --json-all" }
+}
+```
+
+The script prints one JSON array — one object per session, in start order, every object carrying an
+`id`. The full contract, every key and the width model are documented under
+[`agentStatus`](#agentstatus) and [`agentStatusList`](#agentstatuslist) below.
+
+Everything else in this README is unchanged from upstream.
 
 ## Installation
 
