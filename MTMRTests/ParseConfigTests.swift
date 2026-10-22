@@ -79,4 +79,19 @@ class ParseConfig: XCTestCase {
             return
         }
     }
+
+    func testAgentStatus() {
+        let agentStatusFixture = """
+            [  { "type": "agentStatus", "width": 190 } ]
+        """.data(using: .utf8)!
+        let result = try? JSONDecoder().decode([BarItemDefinition].self, from: agentStatusFixture)
+        guard case .agentStatus? = result?.first?.type else {
+            XCTFail()
+            return
+        }
+        guard case .width(190)? = result?.first?.additionalParameters[.width] else {
+            XCTFail()
+            return
+        }
+    }
 }

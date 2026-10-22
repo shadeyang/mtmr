@@ -59,6 +59,8 @@ extension ItemType {
             return NetworkBarItem.identifier
         case .darkMode:
             return DarkModeBarItem.identifier
+        case .agentStatus:
+            return AgentStatusBarItem.identifier
         case .swipe(direction: _, fingers: _, minOffset: _, sourceApple: _, sourceBash: _):
             return "com.toxblh.mtmr.swipe."
         case .upnext(from: _, to: _, maxToShow: _, autoResize: _):
@@ -384,6 +386,8 @@ class TouchBarController: NSObject, NSTouchBarDelegate {
             barItem = NetworkBarItem(identifier: identifier, flip: flip, units: units)
         case .darkMode:
             barItem = DarkModeBarItem(identifier: identifier)
+        case .agentStatus:
+            barItem = AgentStatusBarItem(identifier: identifier)
         case let .swipe(direction: direction, fingers: fingers, minOffset: minOffset, sourceApple: sourceApple, sourceBash: sourceBash):
             barItem = SwipeItem(identifier: identifier, direction: direction, fingers: fingers, minOffset: minOffset, sourceApple: sourceApple, sourceBash: sourceBash)
         case let .upnext(from: from, to: to, maxToShow: maxToShow, autoResize: autoResize):
@@ -402,8 +406,8 @@ class TouchBarController: NSObject, NSTouchBarDelegate {
                 touchBarItem.actions.append(ItemAction(trigger: action.trigger, self.closure(for: action)))
             }
         }
-        if case let .bordered(bordered)? = item.additionalParameters[.bordered], let item = barItem as? CustomButtonTouchBarItem {
-            item.isBordered = bordered
+        if case let .bordered(bordered)? = item.additionalParameters[.bordered], let borderedItem = barItem as? CanSetBordered {
+            borderedItem.setBordered(bordered)
         }
         if case let .background(color)? = item.additionalParameters[.background], let item = barItem as? CustomButtonTouchBarItem {
             item.backgroundColor = color
@@ -552,6 +556,22 @@ class TouchBarController: NSObject, NSTouchBarDelegate {
         case .none:
             return nil
         }
+    }
+}
+
+protocol CanSetBordered {
+    func setBordered(_ value: Bool)
+}
+
+extension CustomButtonTouchBarItem: CanSetBordered {
+    func setBordered(_ value: Bool) {
+        isBordered = value
+    }
+}
+
+extension AgentStatusBarItem: CanSetBordered {
+    func setBordered(_ value: Bool) {
+        isBordered = value
     }
 }
 

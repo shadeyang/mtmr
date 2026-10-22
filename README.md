@@ -367,6 +367,21 @@ To close a group, use the button:
 },
 ```
 
+#### `agentStatus`
+
+> Three-section agent status view inside one rounded background, split by thin vertical dividers:
+> project name on the left, status in the middle, activity age on the right.
+> Values are pushed by the integration layer; an over-long project name scrolls instead of truncating.
+> Set `"bordered": false` for a transparent background with only the dividers.
+
+```js
+{
+  "type": "agentStatus",
+  "width": 226, // Optional. Total width. The status and age segments size to their own text; the project name absorbs the rest
+  "bordered": false, // Optional. Default true
+},
+```
+
 #### `upnext`
 
 > Calendar next event plugin

@@ -276,6 +276,7 @@ enum ItemType: Decodable {
     case pomodoro(workTime: Double, restTime: Double)
     case network(flip: Bool, units: String)
     case darkMode
+    case agentStatus
     case swipe(direction: String, fingers: Int, minOffset: Float, sourceApple: SourceProtocol?, sourceBash: SourceProtocol?)
     case upnext(from: Double, to: Double, maxToShow: Int, autoResize: Bool)
 
@@ -333,6 +334,7 @@ enum ItemType: Decodable {
         case pomodoro
         case network
         case darkMode
+        case agentStatus
         case swipe
         case upnext
     }
@@ -429,6 +431,9 @@ enum ItemType: Decodable {
 
         case .darkMode:
             self = .darkMode
+            
+        case .agentStatus:
+            self = .agentStatus
             
         case .swipe:
             let sourceApple = try container.decodeIfPresent(Source.self, forKey: .sourceApple)
